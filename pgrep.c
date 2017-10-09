@@ -52,7 +52,7 @@ void f(int ID)
     printf("Thread %i started\n", ID);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     /*******************************
 	 * Inicializace threadu a zamku
@@ -83,8 +83,19 @@ int main()
 	 * ********************************/
     int res;
     line = read_line(&res);
+    std::regex re(argv[1]);
+    std::string s (line);
+    std::smatch m;
     while (res)
     {
+
+        std::regex_search ( s, m, re );
+        for (unsigned i=0; i<m.size(); ++i) {
+            std::cout << "match " << i << " (" << m[i] << ") ";
+            std::cout << "at position " << m.position(i) << std::endl;
+        }
+        
+
         printf("%s\n", line);
         free(line); /* uvolnim pamet */
         line = read_line(&res);
