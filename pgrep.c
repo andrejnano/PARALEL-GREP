@@ -26,7 +26,8 @@
 // KOSTRA PGREP.C
 /**************************************************************** */
 std::vector<std::mutex *> zamky;
-
+int32_t score;
+int32_t start_score;
 char *line;
 
 char *read_line(int *res)
@@ -52,8 +53,18 @@ void f(int ID)
     printf("Thread %i started\n", ID);
 }
 
+int print_err(void) {
+    fprintf(stderr, "USAGE: pgrep MIN_SCORE RE1 SC1 [ RE2 SC2 ] [ RE3 SC3 ] ...\n");
+    return 1;
+}
 int main(int argc, char *argv[])
 {
+    if (argc % 2 == 1 || argc < 4)
+        return print_err();
+    if (sscanf(argv[1], "%d", &start_score) != 1) {
+        return print_err();
+    }
+    score = -start_score;
     /*******************************
 	 * Inicializace threadu a zamku
 	 * *****************************/
@@ -81,22 +92,38 @@ int main(int argc, char *argv[])
     /**********************************
 	 * Vlastni vypocet pgrep
 	 * ********************************/
+    // uint8_t match = 0;
     int res;
     line = read_line(&res);
-    std::regex re(argv[1]);
-    std::string s (line);
-    std::smatch m;
+    char *regex[(argc - 1) / 2];
+    int32_t local_score[(argc - 1) / 2];
+    uint32_t count = 0;
+    // preparing inputs into arrays starting from 0
+    for (uint32_t i = 3; i < argc;i += 2) {
+        regex[count] = argv[i - 1];
+        printf("i %s\n", argv[i - 1]);
+        if (sscanf(argv[i], "%d", &(local_score[count])) != 1) {
+            local_score[count] = 0;
+        }
+        count++;
+    }
+
     while (res)
     {
-
-        std::regex_search ( s, m, re );
-        for (unsigned i=0; i<m.size(); ++i) {
-            std::cout << "match " << i << " (" << m[i] << ") ";
-            std::cout << "at position " << m.position(i) << std::endl;
+        // non parallel version
+        std::string s (line);
+        for (uint32_t j = 0; j < count;j++) { // TODO create 'count' threads
+            std::regex re(regex[j]);
+            std::smatch m;
+            if (std::regex_match ( s, m, re )) {
+                score += local_score[j];
+            }
+            if (score >= 0) {
+                printf("%s\n", line);
+            }
         }
-        
 
-        printf("%s\n", line);
+        score = -start_score;
         free(line); /* uvolnim pamet */
         line = read_line(&res);
     }
